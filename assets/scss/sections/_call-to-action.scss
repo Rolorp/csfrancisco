@@ -1,0 +1,44 @@
+// main: ../main.scss
+/*--------------------------------------------------------------
+# Call To Action Section
+--------------------------------------------------------------*/
+.call-to-action {
+  padding: 80px 0;
+  position: relative;
+  clip-path: inset(0);
+
+  .container {
+    position: relative;
+    z-index: 3;
+  }
+
+  h3 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--default-color);
+  }
+
+  p {
+    color: var(--default-color);
+  }
+
+  .cta-btn {
+    font-family: var(--heading-font);
+    font-weight: 500;
+    font-size: 16px;
+    letter-spacing: 1px;
+    display: inline-block;
+    padding: 12px 40px;
+    border-radius: 4px;
+    transition: 0.3s;
+    margin: 10px;
+    border: 2px solid var(--contrast-color);
+    color: var(--contrast-color);
+
+    &:hover {
+      background: var(--contrast-color);
+      color: var(--accent-color);
+      border: 2px solid var(--accent-color);
+    }
+  }
+}

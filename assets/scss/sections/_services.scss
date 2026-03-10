@@ -1,0 +1,65 @@
+// main: ../main.scss
+/*--------------------------------------------------------------
+# Services Section
+--------------------------------------------------------------*/
+.services {
+  .service-item {
+    text-align: center;
+    padding: 20px;
+    transition: all ease-in-out 0.3s;
+    height: 100%;
+
+    .icon {
+      background-color: var(--surface-color);
+      color: var(--accent-color);
+      margin: 0 auto;
+      width: 80px;
+      height: 80px;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      transition: 0.3s;
+      font-size: 32px;
+      transition: ease-in-out 0.3s;
+      box-shadow: 0px 0 25px rgba(0, 0, 0, 0.1);
+    }
+
+    h3 {
+      font-weight: 700;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      font-size: 22px;
+      transition: 0.3s;
+      position: relative;
+
+      &:after {
+        content: '';
+        position: absolute;
+        display: block;
+        width: 50px;
+        height: 2px;
+        background: var(--accent-color);
+        bottom: 0;
+        left: calc(50% - 25px);
+      }
+    }
+
+    p {
+      line-height: 24px;
+      font-size: 14px;
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      .icon {
+        box-shadow: 0px 0 40px rgba(0, 0, 0, 0.1);
+      }
+
+      h3 {
+        color: var(--accent-color);
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+// main: ../main.scss
+/*--------------------------------------------------------------
+# Gallery Section
+--------------------------------------------------------------*/
+.gallery {
+  overflow: hidden;
+
+  .swiper-wrapper {
+    height: auto;
+  }
+
+  .swiper-pagination {
+    margin-top: 20px;
+    position: relative;
+
+    .swiper-pagination-bullet {
+      background-color: var(--background-color);
+      border: 1px solid var(--accent-color);
+      width: 12px;
+      height: 12px;
+      opacity: 1;
+    }
+
+    .swiper-pagination-bullet-active {
+      background-color: var(--accent-color);
+    }
+  }
+
+  .swiper-slide-active {
+    text-align: center;
+  }
+
+  @media (min-width: 992px) {
+    .swiper-wrapper {
+      padding: 40px 0;
+    }
+
+    .swiper-slide-active {
+      background: var(--background-color);
+      border: 6px solid var(--accent-color);
+      padding: 4px;
+      z-index: 1;
+      transform: scale(1.2);
+      transition: none;
+    }
+  }
+}

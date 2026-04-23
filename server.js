@@ -27,15 +27,6 @@ const FIELD_LIMITS = {
   message: 5000,
 };
 
-const BLOCKED_STATIC_PATTERNS = [
-  /^\/server\.js$/,
-  /^\/package(-lock)?\.json$/,
-  /^\/\.env/,
-  /^\/\.git/,
-  /^\/README/i,
-  /^\/assets\/scss\//,
-];
-
 const app = express();
 const upload = multer({ limits: { fieldSize: 10_000, fields: 20, files: 0 } });
 
@@ -74,16 +65,21 @@ const sanitizeHeader = (s) => String(s ?? '').replace(/[\r\n]/g, ' ').trim();
 
 const isValidEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        'script-src': ["'self'"],
+        'style-src': ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
+        'font-src': ["'self'", 'fonts.gstatic.com', 'data:'],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+  })
+);
 
-app.use((req, res, next) => {
-  if (BLOCKED_STATIC_PATTERNS.some((re) => re.test(req.path))) {
-    return res.status(404).send('Not found');
-  }
-  next();
-});
-
-app.use(express.static(path.join(__dirname), { dotfiles: 'deny' }));
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'deny' }));
 
 async function sendForm(req, res, { requiredFields, buildMail, validate }) {
   for (const f of requiredFields) {

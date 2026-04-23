@@ -48,30 +48,39 @@
   });
 
   function submitEmailForm(thisForm, action, formData) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     fetch(action, {
       method: 'POST',
       body: formData,
-      headers: {'X-Requested-With': 'XMLHttpRequest'}
+      headers: {'X-Requested-With': 'XMLHttpRequest'},
+      signal: controller.signal
     })
     .then(response => {
       if( response.ok ) {
         return response.text();
       } else {
-        throw new Error(`${response.status} ${response.statusText} ${response.url}`); 
+        return response.text().then(text => { throw new Error(text || `${response.status} ${response.statusText}`); });
       }
     })
     .then(data => {
       thisForm.querySelector('.loading').classList.remove('d-block');
       if (data.trim() === 'OK') {
         thisForm.querySelector('.sent-message').classList.add('d-block');
-        thisForm.reset(); 
+        thisForm.reset();
       } else {
-        throw new Error(data ? data : 'Form submission failed and no error message returned from: ' + action); 
+        throw new Error(data ? data : 'Ocurrió un error. Por favor, inténtelo más tarde.');
       }
     })
     .catch((error) => {
-      displayError(thisForm, error);
-    });
+      if (error.name === 'AbortError') {
+        displayError(thisForm, 'La solicitud tardó demasiado. Verifique su conexión e inténtelo nuevamente.');
+      } else {
+        displayError(thisForm, error);
+      }
+    })
+    .finally(() => clearTimeout(timeoutId));
   }
 
   function displayError(thisForm, error) {

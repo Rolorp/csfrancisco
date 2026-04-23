@@ -29,6 +29,7 @@
   const mobileNavToggleBtn = document.querySelector('.mobile-nav-toggle');
 
   function mobileNavToggle() {
+    if (!mobileNavToggleBtn) return;
     document.querySelector('body').classList.toggle('mobile-nav-active');
     mobileNavToggleBtn.classList.toggle('bi-list');
     mobileNavToggleBtn.classList.toggle('bi-x');
@@ -111,13 +112,14 @@
    * Auto generate the carousel indicators
    */
   document.querySelectorAll('.carousel-indicators').forEach((carouselIndicator) => {
-    carouselIndicator.closest('.carousel').querySelectorAll('.carousel-item').forEach((carouselItem, index) => {
-      if (index === 0) {
-        carouselIndicator.innerHTML += `<li data-bs-target="#${carouselIndicator.closest('.carousel').id}" data-bs-slide-to="${index}" class="active"></li>`;
-      } else {
-        carouselIndicator.innerHTML += `<li data-bs-target="#${carouselIndicator.closest('.carousel').id}" data-bs-slide-to="${index}"></li>`;
-      }
-    });
+    const carousel = carouselIndicator.closest('.carousel');
+    if (!carousel) return;
+    const items = carousel.querySelectorAll('.carousel-item');
+    const html = Array.from(items).map((_, index) => {
+      const activeAttrs = index === 0 ? ' class="active" aria-current="true"' : '';
+      return `<button type="button" data-bs-target="#${carousel.id}" data-bs-slide-to="${index}" aria-label="Slide ${index + 1}"${activeAttrs}></button>`;
+    }).join('');
+    carouselIndicator.insertAdjacentHTML('beforeend', html);
   });
 
   /**

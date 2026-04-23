@@ -16,8 +16,28 @@ if (missing.length) {
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT, 10);
 
+const FIELD_LIMITS = {
+  name: 100,
+  email: 254,
+  phone: 40,
+  subject: 200,
+  date: 40,
+  department: 100,
+  doctor: 100,
+  message: 5000,
+};
+
+const BLOCKED_STATIC_PATTERNS = [
+  /^\/server\.js$/,
+  /^\/package(-lock)?\.json$/,
+  /^\/\.env/,
+  /^\/\.git/,
+  /^\/README/i,
+  /^\/assets\/scss\//,
+];
+
 const app = express();
-const upload = multer({ limits: { fieldSize: 10_000, fields: 20 } });
+const upload = multer({ limits: { fieldSize: 10_000, fields: 20, files: 0 } });
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -27,11 +47,21 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
 });
 
-const formLimiter = rateLimit({
+const appointmentLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => `appointment:${req.ip}`,
+  message: 'Demasiadas solicitudes. Por favor, inténtelo más tarde.',
+});
+
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `contact:${req.ip}`,
   message: 'Demasiadas solicitudes. Por favor, inténtelo más tarde.',
 });
 
@@ -45,12 +75,25 @@ const sanitizeHeader = (s) => String(s ?? '').replace(/[\r\n]/g, ' ').trim();
 const isValidEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.static(path.join(__dirname)));
+
+app.use((req, res, next) => {
+  if (BLOCKED_STATIC_PATTERNS.some((re) => re.test(req.path))) {
+    return res.status(404).send('Not found');
+  }
+  next();
+});
+
+app.use(express.static(path.join(__dirname), { dotfiles: 'deny' }));
 
 async function sendForm(req, res, { requiredFields, buildMail, validate }) {
   for (const f of requiredFields) {
     if (!req.body[f] || !String(req.body[f]).trim()) {
       return res.status(400).send('Por favor, complete todos los campos requeridos.');
+    }
+  }
+  for (const [field, max] of Object.entries(FIELD_LIMITS)) {
+    if (req.body[field] && String(req.body[field]).length > max) {
+      return res.status(400).send(`El campo "${field}" excede la longitud máxima permitida.`);
     }
   }
   if (!isValidEmail(req.body.email)) {
@@ -65,12 +108,12 @@ async function sendForm(req, res, { requiredFields, buildMail, validate }) {
     await transporter.sendMail(buildMail(req.body));
     res.send('OK');
   } catch (err) {
-    console.error('Mail error:', err.message);
+    console.error('Mail error:', err);
     res.status(500).send('Error al enviar el mensaje. Por favor, inténtelo más tarde.');
   }
 }
 
-app.post('/forms/appointment', formLimiter, upload.none(), (req, res) =>
+app.post('/forms/appointment', appointmentLimiter, upload.none(), (req, res) =>
   sendForm(req, res, {
     requiredFields: ['name', 'email', 'phone', 'date', 'department', 'doctor'],
     buildMail: (b) => ({
@@ -92,7 +135,7 @@ app.post('/forms/appointment', formLimiter, upload.none(), (req, res) =>
   })
 );
 
-app.post('/forms/contact', formLimiter, upload.none(), (req, res) =>
+app.post('/forms/contact', contactLimiter, upload.none(), (req, res) =>
   sendForm(req, res, {
     requiredFields: ['name', 'email', 'subject', 'message'],
     validate: (b) => (b.message.length < 10 ? 'El mensaje debe tener al menos 10 caracteres.' : null),
@@ -112,6 +155,19 @@ app.post('/forms/contact', formLimiter, upload.none(), (req, res) =>
   })
 );
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
+const shutdown = (signal) => {
+  console.log(`${signal} received, shutting down...`);
+  server.close(() => {
+    transporter.close();
+    console.log('Closed cleanly');
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10_000).unref();
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

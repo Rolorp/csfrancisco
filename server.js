@@ -79,7 +79,14 @@ app.use(
   })
 );
 
-app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'deny' }));
+app.use((req, res, next) => {
+  if (/^\/(server\.js|package(-lock)?\.json|\.env.*|README\.md|node_modules)(\/|$)/i.test(req.path)) {
+    return res.status(404).end();
+  }
+  next();
+});
+
+app.use(express.static(__dirname, { dotfiles: 'deny' }));
 
 async function sendForm(req, res, { requiredFields, buildMail, validate }) {
   for (const f of requiredFields) {

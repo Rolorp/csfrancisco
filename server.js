@@ -4,7 +4,6 @@ const multer = require('multer');
 const nodemailer = require('nodemailer');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
 
 const REQUIRED_ENV = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM', 'MAIL_TO'];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
@@ -28,6 +27,7 @@ const FIELD_LIMITS = {
 };
 
 const app = express();
+app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 const upload = multer({ limits: { fieldSize: 10_000, fields: 20, files: 0 } });
 
 const transporter = nodemailer.createTransport({
@@ -63,17 +63,22 @@ const escapeHtml = (s) =>
 
 const sanitizeHeader = (s) => String(s ?? '').replace(/[\r\n]/g, ' ').trim();
 
-const isValidEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+const isValidEmail = (s) => typeof s === 'string' && s.length <= 254 && EMAIL_RE.test(s);
 
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        'script-src': ["'self'"],
-        'style-src': ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
-        'font-src': ["'self'", 'fonts.gstatic.com', 'data:'],
-        'img-src': ["'self'", 'data:'],
+        'default-src': ["'self'"],
+        'base-uri':    ["'self'"],
+        'form-action': ["'self'"],
+        'script-src':  ["'self'"],
+        'style-src':   ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
+        'font-src':    ["'self'", 'fonts.gstatic.com', 'data:'],
+        'img-src':     ["'self'", 'data:', 'https://www.google.com', 'https://maps.gstatic.com'],
+        'frame-src':   ["'self'", 'https://www.google.com', 'https://www.youtube.com', 'https://www.youtube-nocookie.com'],
       },
     },
   })
